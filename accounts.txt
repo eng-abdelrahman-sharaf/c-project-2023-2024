@@ -1,0 +1,3 @@
+1,abdo mostafa,aojfw@apowva.cas,10200.00,01224380033,12-1852794996
+4,Alice Johnson,alice.johnson@example.com,43000.25,9876543210,3-1852794996
+2,Omar Ahmed,omar@outlook.com,39800.00,01122553164,12-1936016476

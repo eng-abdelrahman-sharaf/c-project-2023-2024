@@ -496,7 +496,6 @@ void load (){
         free(templine);
 
         tempfilepath = getTransactionFilePathOnHeap(accounts.array[i].accountNumber);
-        tempfile = openFileTillVaild(tempfilepath , "w" , writingFileTip);
         if((tempfile = openFileTillVaild(tempfilepath , "r" , readingFileTip)) == NULL ) exit(-1); 
         fclose(tempfile);
         free(tempfilepath);

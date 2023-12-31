@@ -1,6 +1,0 @@
-deposit 10
-add 20
-add 30
-add 40
-add 50
-add 60

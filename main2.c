@@ -400,12 +400,11 @@ int getExistingAccountIndex(){
     int index;
     while(1){
         do{
-            account_number = getOnHeapTillValid(maxAccountNumberSize , "enter sender account number : " , "account number is very long\n" , "invalid account number\n" ,  isnum);
+            account_number = getOnHeapTillValid(maxAccountNumberSize , "enter account number : " , "account number is very long\n" , "invalid account number\n" ,  isnum);
             if(strlen(account_number) == 10)break;
-            printf("in valid account number (less than 10 digits)");
+            printf("in valid account number (less than 10 digits)\n");
         }while(1);
         index = searchAccNum(account_number);
-
         // no free if the sender account is found as it will be compared to the receiver account
         if(index != -1){
             free(account_number);
@@ -1130,14 +1129,13 @@ void report()
     char* filePath = getTransactionFilePathOnHeap(index);
 
 
+    FILE* transactionFile = openFileTillVaild(filePath,"r" , readingFileTip);
 
-    FILE* transactionFile = fopen(filePath,"r");
-    if(transactionFile == NULL)
-    {
-        LOG("Error: Couldn't open %s it must be deleted or used by other process" , filePath);
+    if(transactionFile == NULL){
         free(filePath);
         return;
     }
+
     free(filePath);
 
 

@@ -6,20 +6,11 @@
 #include <time.h>
 
 /*-------------------------------------------------globals-------------------------------------------------*/
-typedef enum{
-    FALSE,
-    TRUE,
-    ERROR,
-    SUCCESS
-} error_message ;
-
-
 typedef struct 
 {
     int month;
     int year;
 } Date;
-
 
 typedef struct 
 {
@@ -47,27 +38,25 @@ Credentials credentials = {.number = 0};
 typedef struct{
     Account *array;
     int number;
-    int addedAccountsStartingIndex;
-    int addedAccountsNum;
 }Accounts;
 
-Accounts accounts = {.addedAccountsNum = 0 , .number = 0};
+Accounts accounts = {.number = 0};
 
 
-const char accountsFilePath [] = "../accounts.txt";
-const char credentialsFilePath [] = "../users.txt";
-const char transactionsFolderPath [] = "../transactions/";
-const char tempFilePath [] = "../temp.txt";
-const char filesRelativePath[] = "../";
-const char readingFileTip [] = "check file exists and not used by other process\n";
-const char writingFileTip [] = "check check that you have access to the file\n";
+#define accountsFilePath  "../accounts.txt"
+#define credentialsFilePath  "../users.txt"
+#define transactionsFolderPath  "../transactions/"
+#define tempFilePath  "../temp.txt"
+#define filesRelativePath  "../"
+#define readingFileTip  "check file exists and not used by other process\n"
+#define writingFileTip  "check check that you have access to the file\n"
 
-int maxUsernameSize = 51;
-int maxPasswordSize = 51;
-int maxNameSize = 256;
-int maxAccountNumberSize = 11;
-int maxEmailSize = 321;
-int maxMobileSize = 12;
+#define maxUsernameSize  51
+#define maxPasswordSize 51
+#define maxNameSize  256
+#define maxAccountNumberSize  11
+#define maxEmailSize  321
+#define maxMobileSize  12
 
 /*---------------------------------------------------strUtils-------------------------------------------------------*/
 
@@ -215,7 +204,6 @@ for (i = dot_position + 1; i < length; i++) {
 return 1;
 }
 
-
 /*-------------------------------------------------input functions-------------------------------------------------*/
 
 void getnumberTillValid(char* format, void *ptr , char *entry_message ,char* notANumber_error_message ,
@@ -320,41 +308,6 @@ char* getlineOnHeap(FILE *file){
 }
 
 
-// char *str = malloc(8);
-//  char str[];
-
-int finput(char* preAllocatedString , int stringElementsNum, FILE *file){
-    // clear the string from any old value or garbage 
-    for(int i = 0; i < stringElementsNum ; i++){
-        preAllocatedString[i] = '\0';
-    }
-
-    fgets(preAllocatedString , stringElementsNum , file);
-
-    return check_input_notCropped(preAllocatedString , stringElementsNum , file);
-
-}
-
-int input(char* preAllocatedString , int stringSize){
-    return finput(preAllocatedString , stringSize , stdin);
-}
-
-
-void inputTillValid(char *preAllocatedStr , int size , char * entry_message , char * length_error_message ,
-                    char *condition_error_message , int (*condition)(char *)){
-    int inputSuccess;
-    do{
-        printf( "%s" , entry_message);
-        inputSuccess = finput(preAllocatedStr,size,stdin);
-        inputSuccess? :printf("%s" , length_error_message);
-        if (condition == NULL) continue;
-        if(!condition(preAllocatedStr)){
-            printf("%s" , condition_error_message);
-            inputSuccess = 0;
-        }
-    }while(!inputSuccess ||  !strlen(preAllocatedStr));   
-}
-
 char *getOnHeapTillValid(int size , char * entry_message , char * length_error_message , 
                             char *condition_error_message , int (*condition)(char *)){
     char* result;
@@ -365,8 +318,10 @@ char *getOnHeapTillValid(int size , char * entry_message , char * length_error_m
             printf("%s" , length_error_message); 
             continue;
         }
-
+        
+        // string is empty
         if(!strlen(result)) {
+            printf("no input entered\n");
             free(result);
             result = NULL;
             continue;
@@ -384,9 +339,7 @@ char *getOnHeapTillValid(int size , char * entry_message , char * length_error_m
         
         // continues if  condition didn't pass or the string is empty or the string is cropped (result == NULL)
         printf("%s" , condition_error_message);
-        printf("hi");
         result = realloc(result , strlen(result)+9);
-        printf("hi");
         free(result);
         result = NULL;
 
@@ -394,18 +347,31 @@ char *getOnHeapTillValid(int size , char * entry_message , char * length_error_m
     return result;
 }
 
+int isYorN(char * str){
+    return !strcmp(str , "y") || !strcmp(str , "n");
+}
+
 int binary_prombt(char * message){
-    char answer [2]; 
-    int inputSuccess; 
-    do{
-        printf("%s (y/n) : " , message);
-        inputSuccess = finput(answer , 2, stdin);// to not continue if user entered "yay" for example
-    }while( !inputSuccess || ( strcmp(answer , "y") != 0 && strcmp(answer , "n") != 0 ) );
+    
+    char * prompt_message;
+    prompt_message = malloc(strlen(message) + strlen(" (y/n) : ") + 1);
+    prompt_message[0] = '\0';
+    strcpy(prompt_message , message);
+    strcat(prompt_message , " (y/n) : ");
+    char *answer;
+
+
+    answer = getOnHeapTillValid( 2 ,  prompt_message  , "invalid input should be y/n (lower case)\n" , "invalid input should be y/n (lower case)\n"  ,  isYorN);
+
+    free(prompt_message);
 
     if(strcmp(answer , "n") == 0){
+        free(answer);
         return 0;
     }
 
+    free(answer);
+    
     return 1;
 }
 
@@ -420,6 +386,29 @@ FILE* openFileTillVaild(const char *filepath , char * mode ,const char *tip){
 
 }
 
+
+int getExistingAccountIndex(){
+    char * account_number;
+    int index;
+    while(1){
+        do{
+            account_number = getOnHeapTillValid(maxAccountNumberSize , "enter sender account number : " , "account number is very long\n" , "invalid account number\n" ,  isnum);
+            if(strlen(account_number) == 10)break;
+            printf("in valid account number (less than 10 digits)");
+        }while(1);
+        index = searchAccNum(account_number);
+        
+        // no free if the sender account is found as it will be compared to the receiver account 
+        if(index != -1){
+            free(account_number);
+            return index;
+        }
+        free(account_number);
+        printf("account not found\n");
+    }
+}
+
+
 /*--------------------------------------------------Transactions---------------------------------------------------*/
 int start_from_line(FILE *readingEnabledFile , int line){
     rewind(readingEnabledFile);
@@ -431,12 +420,22 @@ int start_from_line(FILE *readingEnabledFile , int line){
 }
 
 
+
 char *getTransactionFilePathOnHeap(int index){
     char *filepath = calloc(strlen(transactionsFolderPath)+strlen(accounts.array[index].accountNumber) + strlen(".txt") + 1 , sizeof(char));
     strcat(strcat(strcat(filepath , transactionsFolderPath) , accounts.array[index].accountNumber) , ".txt");
     return filepath;
 }
 
+void deleteTransactionsFile(int index){
+    char *transactionsFilepath = getTransactionFilePathOnHeap(index);
+    
+    if(remove(transactionsFilepath) != 0 ){
+        printf("error removing transactions file %s" , transactionsFilepath);
+    }
+
+    free(transactionsFilepath);
+}
 
 int appendTransaction(int index , char * transactionType ,  double amount ){
 
@@ -822,34 +821,13 @@ void delete(){
         load();
         return;
     }
-
+    
+    deleteTransactionsFile(index);
     printf("Account Deleted Successfully\n");
     return;
 }
 
 /*--------------------------------------zeyad------------------------------------------------------*/
-
-int getExistingAccountIndex(){
-    char * account_number;
-    int index;
-    while(1){
-        do{
-            account_number = getOnHeapTillValid(maxAccountNumberSize , "enter sender account number : " , "account number is very long\n" , "invalid account number\n" ,  isnum);
-            if(strlen(account_number) == 10)break;
-            printf("in valid account number (less than 10 digits)");
-        }while(1);
-        index = searchAccNum(account_number);
-        
-        // no free if the sender account is found as it will be compared to the receiver account 
-        if(index != -1){
-            free(account_number);
-            return index;
-        }
-        free(account_number);
-        printf("account not found\n");
-    }
-}
-
 
 // Function to validate user credentials
 int validateUser(char *username, char *password) {
@@ -1032,13 +1010,6 @@ void addaccount(){
 
     mobile_number =  getOnHeapTillValid( maxMobileSize , "Mobile number: " , "Please enter a valid 11-digit mobile number\n" , "Please enter a valid 11-digit mobile number\n" , isMobile);
     
-
-
-
-
-    // save 
-    // end save
-
     accounts.array = realloc( accounts.array , (accounts.number + 1) * sizeof(Account));
     time_t timeSecSince1970 = time(NULL);
     struct tm *current_time = localtime(&timeSecSince1970);
@@ -1066,59 +1037,9 @@ void addaccount(){
 
 void quit()
 {
-    // system("cls");
     printf("Thank you for choosing our services");
     exit(0);
 }
-
-void dynamicstrcat(char** dynamicStr,char* str)
-{
-    *dynamicStr = realloc(*dynamicStr,(strlen(*dynamicStr) + strlen(str) + 1)*sizeof(char));
-
-    if(*dynamicStr == NULL)
-    {
-        printf("No enough space\n");
-        quit();
-    }
-
-
-    strcat(*dynamicStr,str);
-}
-
-void emptyFileBuffer(FILE * file)
-{
-    while(fgetc(file) != '\n');
-}
-void emptyBuffer()
-{
-    emptyFileBuffer(stdin);
-}
-
-char* inputID(int stringElementsNum , FILE *file)
-{
-
-    char* num = (char*) malloc(sizeof(char));
-    num[0] = '\0';
-    char ch[] = " ";
-
-    int i = 0;
-    while((ch[0] = fgetc(file)) != '\n' && i < stringElementsNum - 1)
-    {
-        dynamicstrcat(&num,ch);
-        i++;
-    }
-    num[i] = '\0';
-
-
-
-    if(!check_input_notCropped(num , stringElementsNum , file)){
-        free(num);
-        return NULL;
-    }
-
-    return num;
-}
-
 
 void withdraw()
 {
@@ -1153,12 +1074,9 @@ void withdraw()
 
 void deposit()
 {
-    // char* ID;
     int Index;
 
     Index = getExistingAccountIndex();
-
-    // free(ID);
 
     double amountDeposited ;
 
@@ -1224,10 +1142,7 @@ void report()
 
 void InvalidInput()
 {
-    // emptyBuffer();
-    // system("cls");
     printf("Error: Invalid option\n");
-    // emptyBuffer();
 }
 
 
@@ -1277,19 +1192,6 @@ void ui()
             if(option >= 1 && option <= 11 )break;
             InvalidInput();
         }while(1);
-
-
-        // if(scanf("%d",&option) == 0)
-        // {
-        //     InvalidInput();
-        //     continue;
-        // }
-        // emptyBuffer();
-
-        
-
-        // system("cls");
-
         switch(option)
         {
             case 1:addaccount();break;
@@ -1309,28 +1211,11 @@ void ui()
 }
 
 
-
-
-
-
-
-
-
 /*----------------------------------------main----------------------------------------------------*/
 
 
 
 int main(){
-    // getOnHeapTillValid(maxUsernameSize , "Enter username: " , "too long username\n"  , "invalid username (space(s) detected)\n" , isnum);
-    // ui();
-    char *str;
-    if((str = inputID(100  , stdin)) == NULL){
-        printf("%s" , str);
-        free(str);
-    }
-    printf("str : %s" , str);
-    
-
 
 }
 
